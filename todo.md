@@ -1,0 +1,4 @@
+- [x] Git connector
+- [ ] Build toml parser
+- [ ] Cmd executor
+- [ ] Configurable interface
