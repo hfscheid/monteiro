@@ -18,7 +18,7 @@ fn main() {
     let _ = Command::new("/bin/bash")
         .current_dir(dest)
         .arg("-c")
-        .arg("'for dir in $(ls); do; echo \"found file: ${dir}\"; done'")
+        .arg("echo hop; echo ha")
         .status()
         .expect("Could not list directory");
     fs::remove_dir_all(dest).unwrap();
