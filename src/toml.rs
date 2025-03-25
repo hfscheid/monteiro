@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 #[derive(std::fmt::Debug)]
+#[derive(Clone)]
 struct BuildPhase {
     name: String,
     commands: Vec<String>,
@@ -37,10 +38,35 @@ mod tests {
             commands = ["echo first", "echo second"]
 
             [[phases]]
-            name = "pre-build"
+            name = "build"
             commands = ["echo third", "echo fourth"]
 
         "#).unwrap();
+        let expect = BuildCfg {
+            repo_name: String::from("https://github.com/hfscheid/ktopology"),
+            phases: [
+                BuildPhase {
+                    name: String::from("pre-build"),
+                    commands: [
+                        String::from("echo first"),
+                        String::from("echo second"),
+                    ].to_vec(),
+                },
+                BuildPhase {
+                    name: String::from("build"),
+                    commands: [
+                        String::from("echo third"),
+                        String::from("echo fourth"),
+                    ].to_vec(),
+                }
+            ].to_vec()
+
+        };
         println!("{:#?}", got);
+        assert_eq!(got.repo_name, expect.repo_name);
+        assert_eq!(got.phases[0].name, expect.phases[0].name);
+        assert_eq!(got.phases[0].name, expect.phases[0].name);
+        assert_eq!(got.phases[0].commands[0], expect.phases[0].commands[0]);
+        assert_eq!(got.phases[0].commands[1], expect.phases[0].commands[1]);
     }
 }
