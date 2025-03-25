@@ -1,0 +1,9 @@
+repo-name = "https://github.com/hfscheid/ktopology"
+phases = [
+  pre-build = {
+    commands = ["echo first", "echo second"]
+  }
+  build = {
+    commands = ["echo third", "echo fourth"]
+  }
+]

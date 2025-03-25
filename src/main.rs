@@ -1,10 +1,12 @@
 mod git;
+mod toml;
 use std::env;
 use std::path::Path;
 use std::process::Command;
 use std::fs;
 
 fn main() {
+    let build_cfg = toml::read_build_cfg("build.toml");
     let repo_name = "https://github.com/hfscheid/ktopology";
     let dir = env::current_dir().unwrap();
     let stem = Path::new(repo_name).file_stem().unwrap();
