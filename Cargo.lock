@@ -323,6 +323,7 @@ version = "0.1.0"
 dependencies = [
  "git2",
  "http",
+ "serde",
  "serde_json",
  "toml",
 ]
