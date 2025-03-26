@@ -1,4 +1,4 @@
-use toml::Table;
+use toml::{self, de::Error};
 use std::fs::File;
 use std::io::Read;
 use serde::Deserialize;
@@ -6,24 +6,38 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 #[derive(std::fmt::Debug)]
 #[derive(Clone)]
-struct BuildPhase {
-    name: String,
-    commands: Vec<String>,
+pub struct BuildPhase {
+    pub name: String,
+    pub commands: Vec<String>,
 }
 
 #[derive(Deserialize)]
 #[derive(std::fmt::Debug)]
 pub struct BuildCfg {
     #[serde(rename(deserialize = "repo-name"))]
-    repo_name: String,
-    phases: Vec<BuildPhase>
+    pub repo_name: String,
+    phases: Vec<BuildPhase>,
+    #[serde(skip)]
+    i: usize
 }
 
-pub fn read_build_cfg(filename: &str) -> () {
+impl Iterator for BuildCfg {
+    type Item = BuildPhase;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.i < self.phases.len() {
+            self.i += 1;
+            Some(self.phases[self.i-1].clone())
+        } else {
+            None
+        }
+    }
+}
+
+pub fn read_build_cfg(filename: &str) -> Result<BuildCfg, Error> {
     let mut cfg_file = File::open(filename).unwrap();
     let mut cfg_content = String::new();
     let _ = cfg_file.read_to_string(&mut cfg_content);
-    let cfg = cfg_content.parse::<Table>().unwrap();
+    toml::from_str::<BuildCfg>(&cfg_content)
 }
 
 #[cfg(test)]
@@ -59,14 +73,16 @@ mod tests {
                         String::from("echo fourth"),
                     ].to_vec(),
                 }
-            ].to_vec()
-
+            ].to_vec(),
+            i: 0
         };
-        println!("{:#?}", got);
+        // println!("{:#?}", got);
         assert_eq!(got.repo_name, expect.repo_name);
         assert_eq!(got.phases[0].name, expect.phases[0].name);
         assert_eq!(got.phases[0].name, expect.phases[0].name);
         assert_eq!(got.phases[0].commands[0], expect.phases[0].commands[0]);
         assert_eq!(got.phases[0].commands[1], expect.phases[0].commands[1]);
+        assert_eq!(got.phases[1].commands[0], expect.phases[1].commands[0]);
+        assert_eq!(got.phases[1].commands[1], expect.phases[1].commands[1]);
     }
 }
