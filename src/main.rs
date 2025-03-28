@@ -1,5 +1,6 @@
 mod git;
 mod toml;
+mod data;
 use std::env;
 use std::path::Path;
 use std::process::Command;
