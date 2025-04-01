@@ -1,9 +1,10 @@
 use toml::{self, de::Error};
-use std::fs::File;
-use std::io::Read;
-use serde::Deserialize;
+use std::fs::{self, File};
+use std::io::{self, Read};
+use serde::{Serialize, Deserialize};
 
 #[derive(Deserialize)]
+#[derive(Serialize)]
 #[derive(std::fmt::Debug)]
 #[derive(Clone)]
 pub struct BuildPhase {
@@ -12,13 +13,31 @@ pub struct BuildPhase {
 }
 
 #[derive(Deserialize)]
+#[derive(Serialize)]
 #[derive(std::fmt::Debug)]
 pub struct BuildCfg {
+    #[serde(rename(deserialize = "build-name"))]
+    pub build_name: String,
     #[serde(rename(deserialize = "repo-name"))]
     pub repo_name: String,
     phases: Vec<BuildPhase>,
     #[serde(skip)]
     i: usize
+}
+
+impl BuildCfg {
+    pub fn new(name: &str) -> BuildCfg {
+        return BuildCfg {
+            build_name: String::from(name),
+            repo_name: String::from(""),
+            phases: Vec::<BuildPhase>::new(),
+            i: 0
+        }
+    }
+    pub fn to_file(&self, filename: &str) -> io::Result<()> {
+        let data = toml::to_string(self).unwrap();
+        fs::write(filename, data)
+    }
 }
 
 impl Iterator for BuildCfg {
@@ -46,6 +65,7 @@ mod tests {
     #[test]
     fn test_deserialize_build() {
         let got: BuildCfg = toml::from_str(r#"
+            build-name = "test build"
             repo-name = "https://github.com/hfscheid/ktopology"
             [[phases]]
             name = "pre-build"
@@ -57,6 +77,7 @@ mod tests {
 
         "#).unwrap();
         let expect = BuildCfg {
+            build_name: String::from("test build"),
             repo_name: String::from("https://github.com/hfscheid/ktopology"),
             phases: [
                 BuildPhase {
@@ -77,6 +98,7 @@ mod tests {
             i: 0
         };
         // println!("{:#?}", got);
+        assert_eq!(got.build_name, expect.build_name);
         assert_eq!(got.repo_name, expect.repo_name);
         assert_eq!(got.phases[0].name, expect.phases[0].name);
         assert_eq!(got.phases[0].name, expect.phases[0].name);
