@@ -1,8 +1,17 @@
-repo-name = "https://github.com/hfscheid/ktopology"
+remote-url = "git@github.com:hfscheid/ktopology.git"
+build-name = "Test Build"
 [[phases]]
 name = "pre-build"
-commands = ["echo first", "echo second"]
+commands = [
+  "echo \"listing project root...\"",
+  "ls"
+]
 
 [[phases]]
 name = "build"
-commands = ["echo third", "echo fourth"]
+commands = [
+  "echo \"attempting to cd into ktgraph...\"",
+  "cd ktgraph",
+  "echo \"listing ktgraph...\"",
+  "ls"
+]

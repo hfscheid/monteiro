@@ -18,7 +18,7 @@ pub struct BuildPhase {
 pub struct BuildCfg {
     #[serde(rename(deserialize = "build-name"))]
     pub build_name: String,
-    #[serde(rename(deserialize = "repo-name"))]
+    #[serde(rename(deserialize = "remote-url"))]
     pub repo_name: String,
     phases: Vec<BuildPhase>,
     #[serde(skip)]
