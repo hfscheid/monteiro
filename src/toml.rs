@@ -1,6 +1,6 @@
 use toml::{self, de::Error};
 use std::fs::{self, File};
-use std::io::{self, Read};
+use std::io::{self, Read, stdin};
 use serde::{Serialize, Deserialize};
 
 #[derive(Deserialize)]
@@ -52,10 +52,16 @@ impl Iterator for BuildCfg {
     }
 }
 
-pub fn read_build_cfg(filename: &str) -> Result<BuildCfg, Error> {
+pub fn read_build_cfg_from_path(filename: &str) -> Result<BuildCfg, Error> {
     let mut cfg_file = File::open(filename).unwrap();
     let mut cfg_content = String::new();
     let _ = cfg_file.read_to_string(&mut cfg_content);
+    toml::from_str::<BuildCfg>(&cfg_content)
+}
+
+pub fn read_build_cfg_from_stdin() -> Result<BuildCfg, Error> {
+    let mut cfg_content = String::new();
+    let _ = stdin().read_to_string(&mut cfg_content);
     toml::from_str::<BuildCfg>(&cfg_content)
 }
 
