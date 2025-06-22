@@ -2,6 +2,9 @@ use crate::toml;
 use crate::run;
 use std::net::{TcpListener, TcpStream};
 use std::io::{BufReader, BufRead, Read, Write};
+use std::sync::mpsc::{self, Sender, Receiver};
+use std::thread;
+use std::time::Duration;
 
 fn read_headers(buf_reader: &mut BufReader<&TcpStream>) -> Vec<String> {
     let mut headers = Vec::<String>::new();
@@ -30,7 +33,7 @@ fn get_content_length(headers: &Vec<String>) -> usize {
     content_length
 }
 
-fn handle_content(
+fn handle_content(mut stream: TcpStream,
                   buf_reader: &mut BufReader<&TcpStream>,
                   content_length: usize) {
     let mut buffer = Vec::<u8>::new();
@@ -39,33 +42,67 @@ fn handle_content(
     let body = String::from_utf8_lossy(&buffer).to_string();
     println!("montefile is:\n {}", body);
     let build_cfg = toml::read_build_cfg_from_string(&body).unwrap();
-    run::run(build_cfg, true, None);
+
+    let (send_chan, rec_chan): (Sender<String>, Receiver<String>) = mpsc::channel();
+    thread::spawn(move || {
+        run::run(build_cfg, true, Some(send_chan));
+    });
+    let headers = format!(
+        "HTTP/1.1 200 OK\r\n\
+         Content-Type: text/event-stream\r\n\
+         Connection: keep-alive\r\n\
+         Access-Control-Allow-Origin: *\r\n\
+         \r\n"
+    );
+    stream.write_all(headers.as_bytes()).unwrap();
+    stream.flush();
+    while let Ok(line) = rec_chan.recv() {
+        let data = format!(
+            "{{\"status\": \"info\", \"message\": \"{}\"}}\n",
+            line
+        );
+        stream.write_all(data.as_bytes()).unwrap();
+        stream.flush();
+    }
+    let end = r#"{"status": "info": "message": "build succeeded"}"#;
+    stream.write_all(end.as_bytes()).unwrap();
+    stream.flush();
 }
 
-fn handle_no_content(stream: &mut TcpStream) {
-    let response_body = String::from(
-        "{\"status\": \"error\", \"message\": \"empty config, skipping...\"}"
+fn format_response(status: String, message: String) -> String {
+    let response_body = format!(
+        "{{\"status\": \"{}\", \"message\": \"{}\"}}",
+        status, message
     );
-    let response = format!(
-        "HTTP/1.1 400 Bad Request\r\n\
+    format!(
+        "HTTP/1.1 200 OK\r\n\
          Content-Type: application/json\r\n\
-         Content-Length: {}\r\n\
-         Connection: close\r\n\
+         Connection: keep-alive\r\n\
+         Content-Size: {}
          \r\n\
          {}",
          response_body.len(),
          response_body
+    )
+}
+
+fn handle_no_content(stream: &mut TcpStream) {
+    let response = format_response(
+        String::from("error"),
+        String::from("empty config, skipping...")
     );
     stream.write_all(response.as_bytes()).unwrap();
     stream.flush().unwrap();
 }
 
 fn handle(mut stream: TcpStream) {
-    let mut buf_reader = BufReader::new(&stream);
+    stream.set_read_timeout(Some(Duration::from_secs(30))).unwrap();
+    let stream_clone = stream.try_clone().unwrap();
+    let mut buf_reader = BufReader::new(&stream_clone);
     let headers = read_headers(&mut buf_reader);
     let content_length = get_content_length(&headers);
     if content_length > 0 {
-        handle_content(&mut buf_reader, content_length);
+        handle_content(stream, &mut buf_reader, content_length);
     } else {
         handle_no_content(&mut stream);
     }

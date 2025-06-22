@@ -1,13 +1,24 @@
 use crate::toml;
 use crate::git;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::env;
 use std::path::Path;
 use std::fs;
+use std::sync::mpsc::Sender;
+use std::io::{BufReader, BufRead};
 
-pub fn run(build_cfg: toml::BuildCfg, clean: bool, status_stream: Option<()>) {
+pub fn run(build_cfg: toml::BuildCfg,
+           clean: bool,
+           mut status_stream: Option<Sender<String>>) {
     // clone repo specified in config file
-    println!("Cloning git repo");
+    match status_stream {
+        Some(ref s_stream) => {
+            if let Err(e) = s_stream.send(String::from("Cloning git repo")) {
+                panic!("Error: {}", e);
+            }
+        },
+        None => println!("Cloning git repo"),
+    };
     let dir = env::current_dir().unwrap();
     let stem = Path::new(&build_cfg.repo_name).file_stem().unwrap();
     let join = dir.join(stem);
@@ -19,7 +30,7 @@ pub fn run(build_cfg: toml::BuildCfg, clean: bool, status_stream: Option<()>) {
 
     // iterate over phases in config
     for phase in build_cfg {
-        run_phase(phase, project_dir);
+        run_phase(phase, project_dir, &mut status_stream);
     }
 
     if clean {
@@ -27,16 +38,45 @@ pub fn run(build_cfg: toml::BuildCfg, clean: bool, status_stream: Option<()>) {
     }
 }
 
-pub fn run_phase(phase: toml::BuildPhase, project_dir: &str) {
-    println!("Executing phase {}...", phase.name);
+pub fn run_phase(phase: toml::BuildPhase,
+                 project_dir: &str,
+                 status_stream: &mut Option<Sender<String>>) {
+    match status_stream {
+        Some(s_stream) => {
+            if let Err(e) = s_stream.send(
+                format!("Executing phase {}...", phase.name)
+            ) {
+                panic!("Error: {}", e);
+            }
+        },
+        None => println!("Executing phase {}...", phase.name),
+    };
     let cmd_sequence = phase.commands.iter()
         .fold(String::new(), |cmd, next| -> String {
             String::from(cmd)+next+"; "
         });
-    let _ = Command::new("/bin/bash")
+    let child_process = Command::new("/bin/bash")
         .current_dir(project_dir)
         .arg("-c")
         .arg(cmd_sequence)
-        .status()
+        .stdout(Stdio::piped())
+        .spawn()
         .expect(&("Could not run phase".to_owned()+&phase.name));
+        if let Some(s_stream) = status_stream {
+            let output = child_process.stdout.unwrap();
+            let mut buf_reader = BufReader::new(output);
+            let mut line = String::new();
+            loop {
+                buf_reader.read_line(&mut line);
+                if line.is_empty() {
+                    break;
+                }
+                if let Err(e) = s_stream.send(
+                    line.clone().trim().to_string()
+                ) {
+                    panic!("Error: {}", e);
+                }
+                line.clear();
+            };
+        };
 }
