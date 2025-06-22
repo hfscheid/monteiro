@@ -59,6 +59,10 @@ pub fn read_build_cfg_from_path(filename: &str) -> Result<BuildCfg, Error> {
     toml::from_str::<BuildCfg>(&cfg_content)
 }
 
+pub fn read_build_cfg_from_string(cfg: &str) -> Result<BuildCfg, Error> {
+    toml::from_str::<BuildCfg>(cfg)
+}
+
 pub fn read_build_cfg_from_stdin() -> Result<BuildCfg, Error> {
     let mut cfg_content = String::new();
     let _ = stdin().read_to_string(&mut cfg_content);
