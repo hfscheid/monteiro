@@ -1,4 +1,0 @@
-- [x] Git connector
-- [x] Build toml parser
-- [x] Cmd executor
-- [ ] Build config database

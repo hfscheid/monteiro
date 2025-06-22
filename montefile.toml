@@ -1,4 +1,4 @@
-remote-url = "git@github.com:hfscheid/ktopology.git"
+remote-url = "git@github.com:hfscheid/monteiro.git"
 build-name = "Test Build"
 [[phases]]
 name = "pre-build"
@@ -10,8 +10,8 @@ commands = [
 [[phases]]
 name = "build"
 commands = [
-  "echo \"attempting to cd into ktgraph...\"",
-  "cd ktgraph",
-  "echo \"listing ktgraph...\"",
+  "echo \"attempting to cd into src...\"",
+  "cd src",
+  "echo \"listing src...\"",
   "ls"
 ]
