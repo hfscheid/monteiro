@@ -6,6 +6,7 @@ use std::path::Path;
 use std::fs;
 use std::sync::mpsc::Sender;
 use std::io::{BufReader, BufRead};
+use bollard;
 
 pub fn run(build_cfg: toml::BuildCfg,
            clean: bool,
@@ -67,7 +68,7 @@ pub fn run_phase(phase: toml::BuildPhase,
             let mut buf_reader = BufReader::new(output);
             let mut line = String::new();
             loop {
-                buf_reader.read_line(&mut line);
+                let _ = buf_reader.read_line(&mut line);
                 if line.is_empty() {
                     break;
                 }

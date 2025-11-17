@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+systemctl = "0.5.0"
+bollard = "*"
 clap = { version = "4.5.40", features = ["derive"] }
 git2 = "0.20.1"
 homedir = "0.3.4"
